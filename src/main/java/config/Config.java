@@ -6,4 +6,3 @@ package config;
 public class Config {
     public static final String ZookeeperUrl = "45.79.147.213:2181";
 }
-

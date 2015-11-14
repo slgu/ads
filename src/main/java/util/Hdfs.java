@@ -12,9 +12,10 @@ public class Hdfs {
     }
 
     public boolean create(String filename, InputStream io) {
+        return false;
     }
 
     public boolean delete(String filename) {
-
+        return false;
     }
 }

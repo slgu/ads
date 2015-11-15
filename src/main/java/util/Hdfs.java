@@ -32,8 +32,8 @@ public class Hdfs {
         buffer = new byte[bufferSize];
     }
 
-    public static Hdfs single() {
-        return null;
+    public static Hdfs single() throws IOException{
+        return new Hdfs("");
     }
 
     public boolean create(String filename, InputStream io){

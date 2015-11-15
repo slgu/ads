@@ -50,7 +50,7 @@ public class FixedLengthHashing implements DedupInterface {
            }
         }
         if(length != 0)
-            re.add(new Pair(index*blockSize,new String(md.digest())));
+            re.add(new Pair(length + index*blockSize,new String(md.digest())));
 
         return re;
     }

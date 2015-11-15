@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.URL;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
 * We compute the checksum using Broder s implementation of
@@ -51,7 +54,7 @@ import java.net.URL;
 * 1993
 *
 */
-public final class RabinHelper implements Serializable {
+public final class RabinHelper implements Serializable,DedupInterface {
 
        /**
 	 * 
@@ -74,7 +77,6 @@ public final class RabinHelper implements Serializable {
        /**
         *  Constructor for the RabinHashFunction64 object
         *
-        *@param  P  Description of the Parameter
         */
        public void setId(long i)
        {
@@ -162,7 +164,6 @@ public final class RabinHelper implements Serializable {
         *@param  A       Description of the Parameter
         *@param  offset  Description of the Parameter
         *@param  length  Description of the Parameter
-        *@param  w       Description of the Parameter
         *@return         Description of the Return Value
         */
        private long hash(byte[] A, int offset, int length, long ws) {
@@ -241,11 +242,21 @@ public final class RabinHelper implements Serializable {
         *@throws  IOException  if an error occurs while reading from the
         *      InputStream
         */
-       public void hash(InputStream is) throws IOException {
-               long hashValue = 0;
-               int bytesRead = 0;
-               FileOutputStream fos = new FileOutputStream(path + id);
-			   id ++;
+       public List<Pair> hash(InputStream is) throws IOException {
+           long hashValue = 0;
+           int bytesRead = 0;
+           FileOutputStream fos = new FileOutputStream(path + id);
+           MessageDigest md = null;
+           ArrayList<Pair> re = new ArrayList<Pair>();
+           int index = 0;
+           int lastIndex = 0;
+           try {
+               md = MessageDigest.getInstance("SHA-1");
+           }catch (java.security.NoSuchAlgorithmException e){
+               e.printStackTrace();
+               return null;
+           }
+               id ++;
 			   int spos = 0, length = 0;
 			   int all = 0, ao = 0;
                synchronized (buffer) {
@@ -272,24 +283,28 @@ public final class RabinHelper implements Serializable {
                     		if((hashValue & mask) == 123)
                     		{
                     			
-                        		if(spos + windowSize < buffer.length)
-                        			fos.write(buffer, spos, windowSize);
+                        		if(spos + windowSize < buffer.length){
+                                    md.update(buffer,spos,windowSize);
+                                    index += windowSize;
+                                }
+
+                        			//fos.write(buffer, spos, windowSize);
                         		else
                         		{
-                        			fos.write(buffer,spos ,buffer.length - spos);
-                        			fos.write(buffer, 0 ,windowSize - buffer.length + spos);
+                                    md.update(buffer,spos ,buffer.length - spos);
+                                    md.update(buffer, 0 ,windowSize - buffer.length + spos);
+                                    index += windowSize;
                         		}
-                        		fos.close();
-                        		
-                    			fos = new FileOutputStream(path + id);
-                    			id++;
+                                re.add(new Pair(index,new String(md.digest())));
+                                lastIndex = index;
                     			spos = (spos + windowSize)%buffer.length;
                     			ao += windowSize;
                     			length -= windowSize;
                     		}
                     		else
                     		{
-                    			fos.write(buffer, spos, 1);
+                    			md.update(buffer, spos, 1);
+                                index++;
                     			ao ++;
                     			spos = (spos + 1)%buffer.length;
                     			length --;
@@ -297,15 +312,22 @@ public final class RabinHelper implements Serializable {
                     	}
                     	spos = spos%buffer.length;
             	   }
-           		if(spos + length < buffer.length)
-        			fos.write(buffer, spos, length);
+           		if(spos + length < buffer.length){
+                    md.update(buffer, spos, length);
+                    index += length;
+                }
+
         		else
         		{
-        			fos.write(buffer,spos ,buffer.length - spos);
-        			fos.write(buffer, 0 ,length - buffer.length + spos);
+        			md.update(buffer,spos ,buffer.length - spos);
+        			md.update(buffer, 0 ,length - buffer.length + spos);
+                    index += length;
         		}
-           		fos.close();
+           		if( index > lastIndex){
+                    re.add(new Pair(index, new String(md.digest())));
+                }
             }
+           return re;
        }
 
        /**

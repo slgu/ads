@@ -1,5 +1,6 @@
 package dedup;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -10,5 +11,5 @@ import java.util.List;
     TODO: 3 sub-class to be implemented
  */
 public interface DedupInterface {
-    public List <Pair> hash(InputStream io);
+    public List <Pair> hash(InputStream io) throws IOException;
 }

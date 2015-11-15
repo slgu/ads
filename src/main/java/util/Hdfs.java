@@ -5,6 +5,7 @@ import java.io.InputStream;
 /**
  * Created by slgu1 on 11/14/15.
  */
+//TODO
 public class Hdfs {
 
     public static Hdfs single() {
@@ -17,5 +18,8 @@ public class Hdfs {
 
     public boolean delete(String filename) {
         return false;
+    }
+    public InputStream read(String filename) {
+        return null;
     }
 }

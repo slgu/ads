@@ -9,6 +9,8 @@ import util.Mongo;
 import util.Util;
 
 import javax.print.Doc;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -131,5 +133,55 @@ public class FileOp {
             res.add((String)doc.get("name"));
         }
         return res;
+    }
+    public static boolean get(String filename) {
+        Document doc = Mongo.mongodb.getCollection(Config.FileConnection).findOneAndUpdate(
+                new Document()
+                        .append("state", "done")
+                        .append("name", filename),
+                //update view time
+                new Document()
+                        .append("$currentDate", new Document("lastModified", true))
+        );
+        if (doc == null) {
+            System.out.println("file not exists");
+            return false;
+        }
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(filename);
+        }
+        catch (Exception e) {
+            System.out.println("open file to write error");
+            return false;
+        }
+
+        String [] blocks = (String [])doc.get("blocks");
+        for (String block: blocks) {
+            Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
+                    new Document("name", block),
+                    new Document()
+                            .append("$currentDate", new Document("lastModified", true))
+            );
+            InputStream io = Hdfs.single().read(block);
+            try {
+                byte[] buffer = new byte[io.available()];
+                int byteRead = io.read(buffer);
+                //write to output
+                out.write(buffer, 0, byteRead);
+            }
+            catch (IOException e) {
+                System.out.println("read error");
+                return false;
+            }
+        }
+        try {
+            out.close();
+        }
+        catch (IOException e) {
+            System.out.println("close write handle error");
+            return false;
+        }
+        return true;
     }
 }

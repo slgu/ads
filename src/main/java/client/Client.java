@@ -1,11 +1,10 @@
 package client;
 
-import com.sun.tools.doclets.internal.toolkit.util.DocFinder;
 import operation.FileOp;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+
+import org.bson.conversions.Bson;
 
 /**
  * Created by slgu1 on 11/13/15.
@@ -18,22 +17,26 @@ public class Client {
      * dedup -get file.txt
      */
     public static void main(String [] args) {
+        /*
         if (args.length != 2) {
             System.out.println("wrong input parameter");
             return;
         }
-        String option = args[0];
-        String filename = args[1];
-        InputStream io = null;
+        */
+        String option = "-put";
+        String filename = "/Users/slgu1/Desktop/w4118.ova";
         if (option.equals("-put")) {
+            InputStream io = null;
+            String baseName = null;
             try {
-                io = new FileInputStream(filename);
+                baseName = new File(filename).getName();
+                io = new BufferedInputStream(new FileInputStream(filename));
             }
             catch (IOException e) {
                 e.printStackTrace();
                 return;
             }
-            boolean res = FileOp.create(filename, io);
+            boolean res = FileOp.create(baseName, io);
             if (!res) {
                 System.out.println("create fail");
                 return;

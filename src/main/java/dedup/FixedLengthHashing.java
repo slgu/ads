@@ -39,13 +39,14 @@ public class FixedLengthHashing implements DedupInterface {
                 break;
            if(length + bytesRead < blockSize) {
                md.update(buffer,0,bytesRead);
-               length = blockSize - length;
+               length += bytesRead;
            }
             else {
                md.update(buffer,0,(int)(blockSize - length));
                index++;
                re.add(new Pair(index*blockSize,new String(md.digest())));
-               md.update(buffer,(int)(blockSize - length), bytesRead);
+               if(length + bytesRead - blockSize != 0)
+                   md.update(buffer,(int)(blockSize - length), bytesRead);
                length = length + bytesRead - blockSize;
            }
         }

@@ -34,6 +34,10 @@ public class Hdfs {
         buffer = new byte[bufferSize];
     }
 
+<<<<<<< HEAD
+    public static Hdfs single() throws IOException{
+        return new Hdfs("");
+=======
     public static Hdfs single() {
         /*TODO maybe lock is needed */
         if (HdfsSingle == null) {
@@ -46,6 +50,7 @@ public class Hdfs {
             }
         }
         return HdfsSingle;
+>>>>>>> 521c51cb64f970cf6ff07d6d61e957ad38714651
     }
     public boolean create(String filename, InputStream io, long number){
         try {

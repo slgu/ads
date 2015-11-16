@@ -1,5 +1,6 @@
 package operation;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import config.Config;
 import dedup.Pair;
@@ -12,6 +13,8 @@ import javax.print.Doc;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,25 +23,42 @@ import java.util.List;
  */
 public class FileOp {
     public static boolean create(String filename, InputStream io) {
-        //handler
         String uuid = Util.uuid();
         try {
+            System.out.println("begin create");
+            //handler
             Mongo.mongodb.getCollection(Config.FileConnection).insertOne(
                     new Document()
                             .append("uid", uuid)
                             .append("name", filename)
-                            .append("$currentDate", new Document("lastModified", true))
                             .append("state", "pending")
-                            .append("blocks", new String[]{})
+                            /*IMPORTANT*/
+                            .append("blocks", new ArrayList<String>())
+                            .append("lastModified", new Date())
             );
+            System.out.println("end create");
+            //handler
         }
         catch (Exception e) {
+            e.printStackTrace();
             System.out.println("file exist in DedupFs");
             return false;
         }
         /* check file */
-        List <Pair> resHash = Config.dedup.hash(io);
+        List <Pair> resHash = null;
+        System.out.println("begin hash");
+        try {
+            io.mark(0);
+            resHash = Config.dedup.hash(io);
+            System.out.println(resHash);
+            io.reset();
+        }
+        catch (IOException e)  {
+            e.printStackTrace();
+            return false;
+        }
         LinkedList <String> list = new LinkedList<String>();
+        long beginIdx = 0;
         for (Pair pair: resHash) {
             /* check db */
             Document doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
@@ -50,14 +70,16 @@ public class FileOp {
                 //insert into hdfs
                 String tmpFile = filename + "_" + Util.uuid();
                 /* TODO split io */
-                Hdfs.single().create(tmpFile, io);
+                System.out.println(pair.idx);
+                Hdfs.single().create(tmpFile, io, pair.idx - beginIdx);
+                beginIdx = pair.idx;
                 //check db again
                 try {
                     Mongo.mongodb.getCollection(Config.BlockConnection).insertOne(
                             new Document()
                                     .append("name", tmpFile)
                                     .append("hash", pair.hash)
-                                    .append("$currentDate", new Document("lastModified", true))
+                                    .append("lastModified", new Date())
                                     .append("referCnt", 1)
                     );
                 }
@@ -84,9 +106,9 @@ public class FileOp {
             Document doc = Mongo.mongodb.getCollection(Config.FileConnection).findOneAndUpdate(
                     new Document("uid", uuid),
                     new Document()
-                            .append("state", "done")
+                            .append("$set", new Document("state", "done"))
                             .append("$currentDate", new Document("lastModified", true))
-                            .append("blocks", list.toArray(new String[]{}))
+                            .append("$set", new Document("blocks", list))
             );
             if (doc == null)
                 return false;
@@ -141,7 +163,7 @@ public class FileOp {
                         .append("name", filename),
                 //update view time
                 new Document()
-                        .append("$currentDate", new Document("lastModified", true))
+                        .append("lastModified", new Date())
         );
         if (doc == null) {
             System.out.println("file not exists");
@@ -161,9 +183,15 @@ public class FileOp {
             Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
                     new Document("name", block),
                     new Document()
-                            .append("$currentDate", new Document("lastModified", true))
+                            .append("lastModified", new Date())
             );
-            InputStream io = Hdfs.single().read(block);
+            InputStream io = null;
+            try {
+                io = Hdfs.single().read(block);
+            }
+            catch (IOException e) {
+                return false;
+            }
             try {
                 byte[] buffer = new byte[io.available()];
                 int byteRead = io.read(buffer);

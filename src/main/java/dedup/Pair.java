@@ -10,4 +10,9 @@ public class Pair {
         this.idx = idx;
         this.hash = hash;
     }
+
+    @Override
+    public String toString() {
+        return String.format("idx:%d hash:%s", idx, hash);
+    }
 }

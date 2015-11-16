@@ -59,7 +59,6 @@ public class Hdfs {
                     break;
                 number -= byteRead;
                 os.write(buffer, 0, byteRead);
-                System.out.println(number);
                 if (number == 0)
                     break;
             }

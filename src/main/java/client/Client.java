@@ -36,7 +36,7 @@ public class Client {
                 e.printStackTrace();
                 return;
             }
-            boolean res = FileOp.create(baseName, io);
+            boolean res = FileOp.create(baseName, io, filename);
             if (!res) {
                 System.out.println("create fail");
                 return;

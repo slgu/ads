@@ -24,7 +24,7 @@ public class Client {
         }
         */
         String option = "-put";
-        String filename = "/Users/slgu1/Desktop/w4118.ova";
+        String filename = "/Users/slgu1/Desktop/w4118_2.ova";
         if (option.equals("-put")) {
             InputStream io = null;
             String baseName = null;

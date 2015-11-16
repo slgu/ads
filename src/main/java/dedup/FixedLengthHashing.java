@@ -1,5 +1,7 @@
 package dedup;
 
+import util.Util;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.ParameterizedType;
@@ -44,14 +46,15 @@ public class FixedLengthHashing implements DedupInterface {
             else {
                md.update(buffer,0,(int)(blockSize - length));
                index++;
-               re.add(new Pair(index*blockSize,new String(md.digest())));
+               re.add(new Pair(index*blockSize, Util.eraseGarble(md.digest())));
                if(length + bytesRead - blockSize != 0)
                    md.update(buffer,(int)(blockSize - length), bytesRead);
                length = length + bytesRead - blockSize;
            }
         }
-        if(length != 0)
-            re.add(new Pair(length + index*blockSize,new String(md.digest())));
+        if(length != 0) {
+            re.add(new Pair(length + index * blockSize, Util.eraseGarble(md.digest())));
+        }
         return re;
     }
 }

@@ -1,5 +1,7 @@
 package dedup;
 
+import util.Util;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -33,17 +35,7 @@ public class FileHashing implements DedupInterface{
             md.update(buffer,0,bytesRead);
         }
         byte [] thedigest = md.digest();
-        StringBuilder md5StrBuff = new StringBuilder();
-        for (int i = 0; i < thedigest.length; i++) {
-            if (Integer.toHexString(0xFF & thedigest[i]).length() == 1) {
-                md5StrBuff.append("0").append(
-                        Integer.toHexString(0xFF & thedigest[i]));
-            } else {
-                md5StrBuff.append(Integer.toHexString(0xFF & thedigest[i]));
-            }
-        }
-        re.add(new Pair(length, md5StrBuff.toString()));
-
+        re.add(new Pair(length, Util.eraseGarble(thedigest)));
         return re;
     }
 }

@@ -10,9 +10,7 @@ import util.Mongo;
 import util.Util;
 
 import javax.print.Doc;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -22,7 +20,7 @@ import java.util.List;
  * Created by slgu1 on 11/13/15.
  */
 public class FileOp {
-    public static boolean create(String filename, InputStream io) {
+    public static boolean create(String filename, InputStream io, String absoluteName) {
         String uuid = Util.uuid();
         try {
             System.out.println("begin create");
@@ -50,8 +48,9 @@ public class FileOp {
         try {
             io.mark(0);
             resHash = Config.dedup.hash(io);
-            System.out.println(resHash);
-            io.reset();
+            /* TODO:Maybe more suitable reset method */
+            io.close();
+            io = new BufferedInputStream(new FileInputStream(absoluteName));
         }
         catch (IOException e)  {
             e.printStackTrace();
@@ -69,7 +68,6 @@ public class FileOp {
             if (doc == null) {
                 //insert into hdfs
                 String tmpFile = filename + "_" + Util.uuid();
-                /* TODO split io */
                 System.out.println(pair.idx);
                 Hdfs.single().create(tmpFile, io, pair.idx - beginIdx);
                 beginIdx = pair.idx;

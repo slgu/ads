@@ -37,7 +37,8 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
     {
         this.mask = mask;
     }
-    public VaribleLengthHashing() {
+    public VaribleLengthHashing(long mask) {
+        setMask(mask);
         table32 = new long[256];
         table40 = new long[256];
         table48 = new long[256];

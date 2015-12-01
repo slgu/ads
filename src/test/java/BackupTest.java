@@ -42,7 +42,6 @@ public class BackupTest {
     public static void VariableTest() throws IOException {
         System.out.println("begin variable size test");
         try {
-            //dedup = new FixedLengthHashing(1024 * 1024 * 64);
             long msk = 0xFFFFFFFFL;
             System.out.println(msk);
             Config.dedup = new VaribleLengthHashing(msk);

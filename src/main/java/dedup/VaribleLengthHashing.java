@@ -199,7 +199,7 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
                 int b2 = 0;
                 int sp = spos + length;
                 if(spos + length > buffer.length) {
-                    bytesRead = is.read(buffer, (spos+length)% buffer.length, spos - (spos+length)% buffer.length);
+                    bytesRead = is.read(buffer, (spos+length)% buffer.length, buffer.length - length);
                     if(bytesRead < 0)
                         break;
                 }
@@ -223,7 +223,7 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
                         hashValue = hash(buffer,spos ,buffer.length - spos,0);
                         hashValue = hash(buffer, 0 ,windowSize - buffer.length + spos,hashValue);
                     }
-                    if((hashValue & mask) == 123)
+                    if((hashValue & mask) == 1123L)
                     {
 
                         if(spos + windowSize < buffer.length){

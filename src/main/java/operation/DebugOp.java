@@ -23,7 +23,8 @@ public class DebugOp  extends FileOp{
         double fileSize = 0;
         try {
             io.mark(0);
-            resHash = Config.dedup.hash(io);
+            Config.dedup.setIo(io);
+            resHash = Config.dedup.hash();
             fileSize = resHash.get(resHash.size() - 1).idx * 1.0 / 1024 / 1024;
             io.close();
             io = new BufferedInputStream(new FileInputStream(absoluteName));

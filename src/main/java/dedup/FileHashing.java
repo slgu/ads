@@ -11,10 +11,10 @@ import java.util.List;
 /**
  * Created by voodooinnng on 2015/11/15.
  */
-public class FileHashing implements DedupInterface{
+public class FileHashing extends DedupInterface{
     private byte[] buffer = new byte[bufferSize];
     static private final int bufferSize = 4096;
-    public List<Pair> hash(InputStream is) throws IOException
+    public List<Pair> hash() throws IOException
     {
         int bytesRead = 0;
         MessageDigest md = null;
@@ -28,7 +28,7 @@ public class FileHashing implements DedupInterface{
         }
         long length = 0;
         while(true) {
-            bytesRead = is.read(buffer);
+            bytesRead = io.read(buffer);
             if(bytesRead < 0)
                 break;
             length += bytesRead;

@@ -18,7 +18,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-public class HdfsOp extends FileOp{
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+
+//stream when calculating hash
+public class HdfsStreamOp extends FileOp{
     private double total = 0;
 
     @Override
@@ -52,79 +56,106 @@ public class HdfsOp extends FileOp{
         List <Pair> resHash = null;
         System.out.println("begin hash");
         double fileSize = 0;
+        final BlockingQueue <Pair> boundaryQueue = new LinkedBlockingDeque<Pair>();
+        //2 io
+        InputStream io2;
+        //store result blockName
+        LinkedList <String> list = new LinkedList<String>();
+        long beginIdx = 0;
         try {
             io.mark(0);
+            io2 = new BufferedInputStream(new FileInputStream(absoluteName));
+            //set bnoundary queue
+            Config.dedup.setBoundaryQueue(boundaryQueue);
             Config.dedup.setIo(io);
-            resHash = Config.dedup.hash();
+            new Thread(){
+                @Override
+                public void run() {
+                    try {
+                        Config.dedup.hash();
+                    }
+                    catch (Exception e) {
+                        boundaryQueue.add(null);
+                    }
+                }
+            }.start();
+            //receive from blocking queue
+            while (true) {
+                try {
+                    Pair pair = boundaryQueue.take();
+                    if (pair == null) break;
+                    /* check db */
+                    Document doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
+                            new Document("hash", pair.hash),
+                            new Document("$inc", new Document("referCnt", 1))
+                    );
+                    //no such block
+                    if (doc == null) {
+                        //insert into hdfs
+                        String tmpFile = filename + "_" + Util.uuid();
+                        System.out.println(pair.idx);
+                        //get size unit: MB
+                        double blockSize = 1.0 * (pair.idx - beginIdx) / 1024 / 1024;
+                        //hdfs add error
+                        if (!Hdfs.single().create(tmpFile, io2, pair.idx - beginIdx)) {
+                            System.out.println("fuck");
+                            return false;
+                        }
+                        //add to total
+                        total += blockSize;
+                        //check db again
+                        try {
+                            Mongo.mongodb.getCollection(Config.BlockConnection).insertOne(
+                                    new Document()
+                                            .append("name", tmpFile)
+                                            .append("hash", pair.hash)
+                                            .append("lastModified", new Date())
+                                            .append("referCnt", 1)
+                                            .append("size", blockSize)
+                            );
+                        }
+                        catch (Exception e) {
+                            //delete file
+                            //find and inc again
+                            doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
+                                    new Document("hash", pair.hash),
+                                    new Document("$inc", new Document("referCnt", 1))
+                            );
+                            //delete
+                            System.out.println("fuckkkkk");
+                            Hdfs.single().delete(tmpFile);
+                            tmpFile = (String)doc.get("name");
+                        }
+                        //add block filename
+                        list.add(tmpFile);
+                    }
+                    else {
+                        //add hash to block
+                        list.add((String) doc.get("name"));
+                        try {
+                            //skip this range
+                            io2.skip(pair.idx - beginIdx);
+                        }
+                        catch (Exception e) {
+
+                        }
+                    }
+                    //cnmb's bug
+                    beginIdx = pair.idx;
+                }
+                catch (Exception e) {
+                    break;
+                }
+            }
             fileSize = resHash.get(resHash.size() - 1).idx * 1.0 / 1024 / 1024;
             io.close();
-            io = new BufferedInputStream(new FileInputStream(absoluteName));
+            io2.close();
         }
         catch (IOException e)  {
             e.printStackTrace();
             return false;
         }
-        LinkedList <String> list = new LinkedList<String>();
-        long beginIdx = 0;
         for (Pair pair: resHash) {
-            /* check db */
-            Document doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
-                    new Document("hash", pair.hash),
-                    new Document("$inc", new Document("referCnt", 1))
-            );
-            //no such block
-            if (doc == null) {
-                //insert into hdfs
-                String tmpFile = filename + "_" + Util.uuid();
-                System.out.println(pair.idx);
-                //get size unit: MB
-                double blockSize = 1.0 * (pair.idx - beginIdx) / 1024 / 1024;
-                //hdfs add error
-                if (!Hdfs.single().create(tmpFile, io, pair.idx - beginIdx)) {
-                    System.out.println("fuck");
-                    return false;
-                }
-                //add to total
-                total += blockSize;
-                //check db again
-                try {
-                    Mongo.mongodb.getCollection(Config.BlockConnection).insertOne(
-                            new Document()
-                                    .append("name", tmpFile)
-                                    .append("hash", pair.hash)
-                                    .append("lastModified", new Date())
-                                    .append("referCnt", 1)
-                                    .append("size", blockSize)
-                    );
-                }
-                catch (Exception e) {
-                    //delete file
-                    //find and inc again
-                    doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
-                            new Document("hash", pair.hash),
-                            new Document("$inc", new Document("referCnt", 1))
-                    );
-                    //delete
-                    System.out.println("fuckkkkk");
-                    Hdfs.single().delete(tmpFile);
-                    tmpFile = (String)doc.get("name");
-                }
-                //add block filename
-                list.add(tmpFile);
-            }
-            else {
-                //add hash to block
-                list.add((String) doc.get("name"));
-                try {
-                    //skip this range
-                    io.skip(pair.idx - beginIdx);
-                }
-                catch (Exception e) {
-
-                }
-            }
-            //cnmb's bug
-            beginIdx = pair.idx;
         }
         //update namespace
         try {

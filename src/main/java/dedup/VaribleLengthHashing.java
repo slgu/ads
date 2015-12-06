@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public final class VaribleLengthHashing implements Serializable,DedupInterface {
+public class VaribleLengthHashing extends DedupInterface implements Serializable{
 
     private static final long serialVersionUID = -7974881488259731932L;
     private final static int P_DEGREE = 64;
@@ -173,12 +173,11 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
     /**
      *  Computes the Rabin hash value of the data from an <code>InputStream</code>.
      *
-     *@param  is            the InputStream to hash
      *@return               the hash value of the data from the InputStream
      *@throws  IOException  if an error occurs while reading from the
      *      InputStream
      */
-    public List<Pair> hash(InputStream is) throws IOException {
+    public List<Pair> hash() throws IOException {
         long hashValue = 0;
         int bytesRead = 0;
         MessageDigest md = null;
@@ -199,15 +198,15 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
                 int b2 = 0;
                 int sp = spos + length;
                 if(spos + length > buffer.length) {
-                    bytesRead = is.read(buffer, (spos+length)% buffer.length, buffer.length - length);
+                    bytesRead = io.read(buffer, (spos+length)% buffer.length, buffer.length - length);
                     if(bytesRead < 0)
                         break;
                 }
                 else {
-                    bytesRead = is.read(buffer, (spos+length), buffer.length - (spos+length));
+                    bytesRead = io.read(buffer, (spos+length), buffer.length - (spos+length));
                     if(bytesRead < 0)
                         break;
-                    b2 = is.read(buffer, 0, spos);
+                    b2 = io.read(buffer, 0, spos);
                     if(b2 >= 0)
                         bytesRead+=b2;
 
@@ -239,7 +238,10 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
                             index += windowSize;
                         }
                         String sha = Util.eraseGarble(md.digest());
-                        re.add(new Pair(index,sha));
+                        Pair pair = new Pair(index,sha);
+                        if (boundaryQueue != null)
+                            boundaryQueue.add(pair);
+                        re.add(pair);
                         lastIndex = index;
                         spos = (spos + windowSize)%buffer.length;
                         ao += windowSize;
@@ -272,7 +274,10 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
                 index += length;
             }
             if( index > lastIndex){
-                re.add(new Pair(index, Util.eraseGarble(md.digest())));
+                Pair pair = new Pair(index, Util.eraseGarble(md.digest()));
+                if (boundaryQueue != null)
+                    boundaryQueue.add(pair);
+                re.add(pair);
             }
         }
         return re;

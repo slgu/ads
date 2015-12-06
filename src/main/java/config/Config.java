@@ -4,6 +4,7 @@ import dedup.DedupInterface;
 import dedup.FileHashing;
 import dedup.FixedLengthHashing;
 import dedup.VaribleLengthHashing;
+import operation.DebugOp;
 import operation.FileOp;
 import operation.HdfsOp;
 

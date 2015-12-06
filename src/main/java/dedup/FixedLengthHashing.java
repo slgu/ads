@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Created by voodooinnng on 2015/11/15.
  */
-public class FixedLengthHashing implements DedupInterface {
+public class FixedLengthHashing extends DedupInterface {
     private long blockSize;
     private byte[] buffer;
     static private final int bufferSize = 4096;
@@ -23,7 +23,7 @@ public class FixedLengthHashing implements DedupInterface {
             throw new Exception();
         buffer = new byte[bufferSize];
     }
-    public List<Pair> hash(InputStream is) throws IOException{
+    public List<Pair> hash() throws IOException{
         int bytesRead = 0;
         MessageDigest md = null;
         ArrayList<Pair> re = new ArrayList<Pair>();
@@ -36,7 +36,7 @@ public class FixedLengthHashing implements DedupInterface {
         }
         long length = 0;
         while(true) {
-            bytesRead = is.read(buffer);
+            bytesRead = io.read(buffer);
             if(bytesRead < 0)
                 break;
            if(length + bytesRead < blockSize) {

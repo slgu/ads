@@ -4,6 +4,7 @@ import operation.FileOp;
 
 import java.io.*;
 
+import operation.HdfsOp;
 import org.bson.conversions.Bson;
 
 /**
@@ -24,7 +25,8 @@ public class Client {
         }
         */
         String option = "-put";
-        String filename = "/Users/slgu1/Desktop/w4118_2.ova";
+        String filename = "/Users/slgu1/Desktop/w4118.ova";
+        FileOp op = new HdfsOp();
         if (option.equals("-put")) {
             InputStream io = null;
             String baseName = null;
@@ -36,28 +38,28 @@ public class Client {
                 e.printStackTrace();
                 return;
             }
-            boolean res = FileOp.create(baseName, io, filename);
+            boolean res = op.create(baseName, io, filename);
             if (!res) {
                 System.out.println("create fail");
                 return;
             }
         }
         else if (option.equals("-rm")) {
-            boolean res = FileOp.delete(filename);
+            boolean res = op.delete(filename);
             if (!res) {
                 System.out.println("delete fail");
                 return;
             }
         }
         else if (option.equals("-get")) {
-            boolean res = FileOp.get(filename);
+            boolean res = op.get(filename);
             if (!res) {
                 System.out.println("get fail");
                 return;
             }
         }
         else if (option.equals("-ls")) {
-            System.out.println(FileOp.ls());
+            System.out.println(op.ls());
             return;
         }
         else {

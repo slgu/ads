@@ -23,7 +23,7 @@ public final class VaribleLengthHashing implements Serializable,DedupInterface {
     private int windowSize = 48;
 
     private final byte[] buffer;
-    public long mask = 0xFFFFFF;
+    public long mask = 0x3FFFFF;
     //private long POLY = Long.decode("0x0060034000F0D50A").longValue();
     private long POLY = Long.decode("0x004AE1202C306041").longValue() | 1<<63;
 

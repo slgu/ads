@@ -35,7 +35,6 @@ public class Hdfs {
     }
 
     public static Hdfs single() {
-        /*TODO maybe lock is needed */
         if (HdfsSingle == null) {
             try {
                 HdfsSingle = new Hdfs(Config.HdfsUri);

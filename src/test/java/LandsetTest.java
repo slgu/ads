@@ -4,7 +4,6 @@ import dedup.FileHashing;
 import dedup.VaribleLengthHashing;
 import operation.DebugOp;
 import operation.FileOp;
-import operation.HdfsOp;
 
 import javax.management.MBeanServerConnection;
 import java.io.*;
@@ -13,14 +12,15 @@ import java.lang.management.ManagementFactory;
 /**
  * Created by slgu1 on 11/30/15.
  */
-public class BackupTest {
-    private static String imgDir = "/Users/slgu1/ads_data/BackupVm";
-    public static void put() throws IOException {
-        File dir = new File(imgDir);
+public class LandsetTest {
+    private static String imgDir = "/Users/slgu1/ads_data/Landsat";
+
+    public static void storeDir(File dir) throws IOException{
+        FileOp op = new DebugOp();
         for (File f: dir.listFiles()) {
+            if (f.getName().startsWith("."))
+                continue;;
             if (f.isFile()) {
-                if (f.getName().startsWith("."))
-                    continue;
                 InputStream io = null;
                 try {
                     io = new BufferedInputStream(new FileInputStream(f.getAbsoluteFile()));
@@ -30,12 +30,19 @@ public class BackupTest {
                     return;
                 }
                 System.out.println("begin add:" + f.getName());
-                boolean res = Config.op.create(f.getName(), io, f.getAbsolutePath());
+                boolean res = op.create(f.getName(), io, f.getAbsolutePath());
                 System.out.println(res?"succeed":"fail");
                 io.close();
             }
+            else {
+                storeDir(f);
+            }
         }
-        System.out.println("total usage" + Config.op.size());
+    }
+
+    public static void put() throws IOException {
+        File dir = new File(imgDir);
+        storeDir(dir);
     }
     public static void fileLevelTest() throws IOException{
         System.out.println("begin file level test");
@@ -45,7 +52,8 @@ public class BackupTest {
     public static void VariableTest() throws IOException {
         System.out.println("begin variable size test");
         try {
-            long msk = 0x3FFFFFL;
+            long msk = 0xFFFFFL;
+            System.out.println(msk);
             Config.dedup = new VaribleLengthHashing(msk);
         } catch (Exception e) {
             e.printStackTrace();

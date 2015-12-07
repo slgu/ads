@@ -26,7 +26,21 @@ public class HdfsOp extends FileOp{
     public double size() {
         return total;
     }
-
+    private int maxn = 4 * 1024;
+    private byte [] buffer = new byte[maxn];
+    private void skip(InputStream io, int count) throws IOException{
+        while (true) {
+            int byteNeed = count;
+            if (byteNeed > maxn)
+                byteNeed = maxn;
+            int byteRead = io.read(buffer, 0, byteNeed);
+            if (byteRead < 0)
+                break;
+            count -= byteRead;
+            if (count == 0)
+                break;
+        }
+    }
     public boolean create(String filename, InputStream io, String absoluteName) {
         String uuid = Util.uuid();
         try {
@@ -115,11 +129,7 @@ public class HdfsOp extends FileOp{
                 //add hash to block
                 list.add((String) doc.get("name"));
                 try {
-                    //skip this range
-                    long debug_skip = io.skip(pair.idx - beginIdx);
-                    if (debug_skip != pair.idx - beginIdx) {
-                        System.out.println("fuck java io");
-                    }
+                    skip(io, (int)(pair.idx - beginIdx));
                 }
                 catch (Exception e) {
                     e.printStackTrace();
@@ -215,7 +225,9 @@ public class HdfsOp extends FileOp{
         blocks = ((ArrayList <String>)doc.get("blocks")).toArray(blocks);
         System.out.println(blocks.length);
         byte [] buffer = new byte[1024 * 16];
+        int cnt = 0;
         for (String block: blocks) {
+            ++cnt;
             Document block_doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
                     new Document("name", block),
                     new Document()
@@ -230,6 +242,7 @@ public class HdfsOp extends FileOp{
                 return false;
             }
 
+            /*
             //DEBUG hash check
             MessageDigest md = null;
 
@@ -255,15 +268,15 @@ public class HdfsOp extends FileOp{
                 md.update(buffer_debug);
                 String another_hash = Util.eraseGarble(md.digest());
                 if (!hash.equals(another_hash)) {
-                    System.out.println((String)block_doc.get("name"));
-                    System.out.println("fuck");
+                    System.out.println(cnt);
+                    System.out.println((String) block_doc.get("name"));
                 }
                 io.close();
             }
             catch (IOException e) {
 
             }
-            /*
+            */
             try {
                 while (true) {
                     int byteRead = io.read(buffer);
@@ -279,7 +292,6 @@ public class HdfsOp extends FileOp{
                 System.out.println("read error");
                 return false;
             }
-            */
         }
         try {
             out.close();
@@ -298,7 +310,7 @@ public class HdfsOp extends FileOp{
     public static void main(String [] args) {
         HdfsOp op = new HdfsOp();
         System.out.println(op.ls());
-        op.get("w4118_6.ova");
+        op.get("w4118_5.ova");
         System.out.println("done");
     }
 }

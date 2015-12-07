@@ -81,7 +81,6 @@ public class HdfsOp extends FileOp{
                 double blockSize = 1.0 * (pair.idx - beginIdx) / 1024 / 1024;
                 //hdfs add error
                 if (!Hdfs.single().create(tmpFile, io, pair.idx - beginIdx)) {
-                    System.out.println("fuck");
                     return false;
                 }
                 //add to total
@@ -117,7 +116,10 @@ public class HdfsOp extends FileOp{
                 list.add((String) doc.get("name"));
                 try {
                     //skip this range
-                    io.skip(pair.idx - beginIdx);
+                    long debug_skip = io.skip(pair.idx - beginIdx);
+                    if (debug_skip != pair.idx - beginIdx) {
+                        System.out.println("fuck java io");
+                    }
                 }
                 catch (Exception e) {
                     e.printStackTrace();
@@ -212,10 +214,8 @@ public class HdfsOp extends FileOp{
         String [] blocks = new String[]{};
         blocks = ((ArrayList <String>)doc.get("blocks")).toArray(blocks);
         System.out.println(blocks.length);
-        int cnt = 0;
         byte [] buffer = new byte[1024 * 16];
         for (String block: blocks) {
-            ++cnt;
             Document block_doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
                     new Document("name", block),
                     new Document()
@@ -230,31 +230,39 @@ public class HdfsOp extends FileOp{
                 return false;
             }
 
-            System.out.println(cnt);
             //DEBUG hash check
             MessageDigest md = null;
+
             try {
                 md = MessageDigest.getInstance("SHA-1");
             }catch (java.security.NoSuchAlgorithmException e){
                 e.printStackTrace();
             }
+
             try {
-                System.out.println("begin debug");
                 String hash = (String) block_doc.get("hash");
                 double size = (Double) block_doc.get("size");
-                byte[] buffer_debug = new byte[io.available()];
-                double size2 = io.available() * 1.0 / 1024 / 1024;
-                io.read(buffer_debug);
+                int avail = io.available();
+                byte[] buffer_debug = new byte[avail];
+                double size2 = avail * 1.0 / 1024 / 1024;
+                int offset = 0;
+                while (true) {
+                    int byteRead = io.read(buffer_debug, offset, avail - offset);
+                    if (byteRead < 0)
+                        break;
+                    offset += byteRead;
+                }
                 md.update(buffer_debug);
                 String another_hash = Util.eraseGarble(md.digest());
-                System.out.println(hash + " " + another_hash);
-                System.out.println(size + " " + size2);
+                if (!hash.equals(another_hash)) {
+                    System.out.println((String)block_doc.get("name"));
+                    System.out.println("fuck");
+                }
                 io.close();
             }
             catch (IOException e) {
 
             }
-
             /*
             try {
                 while (true) {
@@ -290,7 +298,7 @@ public class HdfsOp extends FileOp{
     public static void main(String [] args) {
         HdfsOp op = new HdfsOp();
         System.out.println(op.ls());
-        op.get("w4118_5.ova");
+        op.get("w4118_6.ova");
         System.out.println("done");
     }
 }

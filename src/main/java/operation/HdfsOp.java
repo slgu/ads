@@ -14,6 +14,7 @@ import util.Util;
 
 import javax.print.Doc;
 import java.io.*;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -76,7 +77,6 @@ public class HdfsOp extends FileOp{
             if (doc == null) {
                 //insert into hdfs
                 String tmpFile = filename + "_" + Util.uuid();
-                System.out.println(pair.idx);
                 //get size unit: MB
                 double blockSize = 1.0 * (pair.idx - beginIdx) / 1024 / 1024;
                 //hdfs add error
@@ -120,21 +120,27 @@ public class HdfsOp extends FileOp{
                     io.skip(pair.idx - beginIdx);
                 }
                 catch (Exception e) {
-
+                    e.printStackTrace();
                 }
             }
             //cnmb's bug
             beginIdx = pair.idx;
+        }
+        //close io
+        try {
+            io.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return false;
         }
         //update namespace
         try {
             Document doc = Mongo.mongodb.getCollection(Config.FileConnection).findOneAndUpdate(
                     new Document("uid", uuid),
                     new Document()
-                            .append("$set", new Document("state", "done"))
                             .append("$currentDate", new Document("lastModified", true))
-                            .append("$set", new Document("blocks", list))
-                            .append("$set", new Document("size", fileSize))
+                            .append("$set", new Document("size", fileSize).append("blocks",list).append("state", "done"))
             );
             if (doc == null)
                 return false;
@@ -178,7 +184,7 @@ public class HdfsOp extends FileOp{
         );
         LinkedList <String> res = new LinkedList<String>();
         for (Document doc: itr) {
-            res.add((String)doc.get("name"));
+            res.add((String) doc.get("name"));
         }
         return res;
     }
@@ -189,7 +195,7 @@ public class HdfsOp extends FileOp{
                         .append("name", filename),
                 //update view time
                 new Document()
-                        .append("lastModified", new Date())
+                        .append("$set", new Document("lastModified", new Date()))
         );
         if (doc == null) {
             System.out.println("file not exists");
@@ -203,31 +209,69 @@ public class HdfsOp extends FileOp{
             System.out.println("open file to write error");
             return false;
         }
-
-        String [] blocks = (String [])doc.get("blocks");
+        String [] blocks = new String[]{};
+        blocks = ((ArrayList <String>)doc.get("blocks")).toArray(blocks);
+        System.out.println(blocks.length);
+        int cnt = 0;
+        byte [] buffer = new byte[1024 * 16];
         for (String block: blocks) {
-            Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
+            ++cnt;
+            Document block_doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
                     new Document("name", block),
                     new Document()
-                            .append("lastModified", new Date())
+                            .append("$set", new Document("lastModified", new Date()))
             );
             InputStream io = null;
             try {
                 io = Hdfs.single().read(block);
             }
             catch (IOException e) {
+                e.printStackTrace();
                 return false;
             }
+
+            System.out.println(cnt);
+            //DEBUG hash check
+            MessageDigest md = null;
             try {
-                byte[] buffer = new byte[io.available()];
-                int byteRead = io.read(buffer);
-                //write to output
-                out.write(buffer, 0, byteRead);
+                md = MessageDigest.getInstance("SHA-1");
+            }catch (java.security.NoSuchAlgorithmException e){
+                e.printStackTrace();
+            }
+            try {
+                System.out.println("begin debug");
+                String hash = (String) block_doc.get("hash");
+                double size = (Double) block_doc.get("size");
+                byte[] buffer_debug = new byte[io.available()];
+                double size2 = io.available() * 1.0 / 1024 / 1024;
+                io.read(buffer_debug);
+                md.update(buffer_debug);
+                String another_hash = Util.eraseGarble(md.digest());
+                System.out.println(hash + " " + another_hash);
+                System.out.println(size + " " + size2);
+                io.close();
+            }
+            catch (IOException e) {
+
+            }
+
+            /*
+            try {
+                while (true) {
+                    int byteRead = io.read(buffer);
+                    if (byteRead < 0)
+                        break;
+                    //write to output
+                    out.write(buffer, 0, byteRead);
+                }
+                //important to close
+                io.close();
             }
             catch (IOException e) {
                 System.out.println("read error");
                 return false;
             }
+            */
         }
         try {
             out.close();
@@ -237,5 +281,16 @@ public class HdfsOp extends FileOp{
             return false;
         }
         return true;
+    }
+
+    public static void debug() {
+
+    }
+
+    public static void main(String [] args) {
+        HdfsOp op = new HdfsOp();
+        System.out.println(op.ls());
+        op.get("w4118_5.ova");
+        System.out.println("done");
     }
 }

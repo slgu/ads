@@ -102,9 +102,16 @@ public class Hdfs {
 
     public static void main(String [] args) {
         try {
+            /*
             FileInputStream input = new FileInputStream("/Users/slgu1/Desktop/w4118.ova");
             Hdfs hdfsDao = Hdfs.single();
             hdfsDao.create("w4118", input);
+            InputStream input = new FileInputStream("123");
+            input.skip(1);
+            byte [] buffer = new byte[3];
+            input.read(buffer, 0,3);
+            System.out.println(new String(buffer));
+            */
             //System.out.println(hdfsDao.delete("haha"));
         }
         catch (Exception e) {

@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 //stream when calculating hash
-public class HdfsStreamOp extends FileOp{
+public class HdfsStreamOp extends HdfsOp {
     private double total = 0;
 
     @Override
@@ -46,21 +46,20 @@ public class HdfsStreamOp extends FileOp{
             );
             System.out.println("end create");
             //handler
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.out.println("file exist in DedupFs");
             return false;
         }
         /* check file */
-        List <Pair> resHash = null;
+        List<Pair> resHash = null;
         System.out.println("begin hash");
         double fileSize = 0;
-        final BlockingQueue <Pair> boundaryQueue = new LinkedBlockingDeque<Pair>();
+        final BlockingQueue<Pair> boundaryQueue = new LinkedBlockingDeque<Pair>();
         //2 io
         InputStream io2;
         //store result blockName
-        LinkedList <String> list = new LinkedList<String>();
+        LinkedList<String> list = new LinkedList<String>();
         long beginIdx = 0;
         try {
             io.mark(0);
@@ -68,14 +67,12 @@ public class HdfsStreamOp extends FileOp{
             //set bnoundary queue
             Config.dedup.setBoundaryQueue(boundaryQueue);
             Config.dedup.setIo(io);
-            new Thread(){
+            new Thread() {
                 @Override
                 public void run() {
                     try {
                         Config.dedup.hash();
-                    }
-                    catch (Exception e) {
-                        boundaryQueue.add(null);
+                    } catch (Exception e) {
                     }
                 }
             }.start();
@@ -83,7 +80,9 @@ public class HdfsStreamOp extends FileOp{
             while (true) {
                 try {
                     Pair pair = boundaryQueue.take();
-                    if (pair == null) break;
+                    //EOF
+                    if (pair.idx == -1) break;
+                    fileSize = pair.idx;
                     /* check db */
                     Document doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
                             new Document("hash", pair.hash),
@@ -113,8 +112,7 @@ public class HdfsStreamOp extends FileOp{
                                             .append("referCnt", 1)
                                             .append("size", blockSize)
                             );
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             //delete file
                             //find and inc again
                             doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
@@ -124,147 +122,46 @@ public class HdfsStreamOp extends FileOp{
                             //delete
                             System.out.println("fuckkkkk");
                             Hdfs.single().delete(tmpFile);
-                            tmpFile = (String)doc.get("name");
+                            tmpFile = (String) doc.get("name");
                         }
                         //add block filename
                         list.add(tmpFile);
-                    }
-                    else {
+                    } else {
                         //add hash to block
                         list.add((String) doc.get("name"));
                         try {
                             //skip this range
-                            io2.skip(pair.idx - beginIdx);
-                        }
-                        catch (Exception e) {
+                            skip(io2, (int) (pair.idx - beginIdx));
+                        } catch (Exception e) {
 
                         }
                     }
                     //cnmb's bug
                     beginIdx = pair.idx;
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     break;
                 }
             }
-            fileSize = resHash.get(resHash.size() - 1).idx * 1.0 / 1024 / 1024;
+            fileSize = fileSize * 1.0 / 1024 / 1024;
             io.close();
             io2.close();
-        }
-        catch (IOException e)  {
+        } catch (IOException e) {
             e.printStackTrace();
             return false;
-        }
-        for (Pair pair: resHash) {
         }
         //update namespace
         try {
             Document doc = Mongo.mongodb.getCollection(Config.FileConnection).findOneAndUpdate(
                     new Document("uid", uuid),
                     new Document()
-                            .append("$set", new Document("state", "done"))
                             .append("$currentDate", new Document("lastModified", true))
-                            .append("$set", new Document("blocks", list))
-                            .append("$set", new Document("size", fileSize))
+                            .append("$set", new Document("size", fileSize).append("blocks",list).append("state", "done"))
             );
             if (doc == null)
                 return false;
         }
         catch (Exception e) {
             e.printStackTrace();
-            return false;
-        }
-        return true;
-
-    }
-    public boolean delete(String filename) {
-        Document doc = Mongo.mongodb.getCollection(Config.FileConnection).findOneAndDelete(
-                new Document()
-                        .append("state", "done")
-                        .append("name", filename)
-        );
-        if (doc == null) {
-            System.out.println("no such file");
-            return false;
-        }
-        //decrease referrence count
-        String [] blocks = (String [])doc.get("blocks");
-        for (int i = 0; i < blocks.length; ++i) {
-            String block = blocks[i];
-            try {
-                Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
-                        new Document("name", block),
-                        new Document("$inc", new Document("referCnt", -1))
-                );
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return true;
-    }
-    public LinkedList <String> ls() {
-        FindIterable <Document> itr = Mongo.mongodb.getCollection(Config.FileConnection).find(
-                new Document("state", "done")
-        );
-        LinkedList <String> res = new LinkedList<String>();
-        for (Document doc: itr) {
-            res.add((String)doc.get("name"));
-        }
-        return res;
-    }
-    public boolean get(String filename) {
-        Document doc = Mongo.mongodb.getCollection(Config.FileConnection).findOneAndUpdate(
-                new Document()
-                        .append("state", "done")
-                        .append("name", filename),
-                //update view time
-                new Document()
-                        .append("lastModified", new Date())
-        );
-        if (doc == null) {
-            System.out.println("file not exists");
-            return false;
-        }
-        FileOutputStream out = null;
-        try {
-            out = new FileOutputStream(filename);
-        }
-        catch (Exception e) {
-            System.out.println("open file to write error");
-            return false;
-        }
-
-        String [] blocks = (String [])doc.get("blocks");
-        for (String block: blocks) {
-            Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
-                    new Document("name", block),
-                    new Document()
-                            .append("lastModified", new Date())
-            );
-            InputStream io = null;
-            try {
-                io = Hdfs.single().read(block);
-            }
-            catch (IOException e) {
-                return false;
-            }
-            try {
-                byte[] buffer = new byte[io.available()];
-                int byteRead = io.read(buffer);
-                //write to output
-                out.write(buffer, 0, byteRead);
-            }
-            catch (IOException e) {
-                System.out.println("read error");
-                return false;
-            }
-        }
-        try {
-            out.close();
-        }
-        catch (IOException e) {
-            System.out.println("close write handle error");
             return false;
         }
         return true;

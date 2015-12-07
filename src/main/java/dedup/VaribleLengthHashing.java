@@ -280,6 +280,8 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
                 re.add(pair);
             }
         }
+        //EOF
+        boundaryQueue.add(new Pair(-1, ""));
         return re;
     }
 

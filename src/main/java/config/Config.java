@@ -7,6 +7,7 @@ import dedup.VaribleLengthHashing;
 import operation.DebugOp;
 import operation.FileOp;
 import operation.HdfsOp;
+import operation.HdfsStreamOp;
 
 /**
  * Created by slgu1 on 11/5/15.
@@ -30,6 +31,6 @@ public class Config {
     public static final int sleepTime = 300;
     /* inner network faster transfer */
     public static final String HdfsUri = "hdfs://10.211.55.3:9000";
-    public static final FileOp op = new HdfsOp();
+    public static final FileOp op = new HdfsStreamOp();
     public static final String DedupDir = "/dedup";
 }

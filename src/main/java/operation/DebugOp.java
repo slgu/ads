@@ -10,6 +10,7 @@ import util.Util;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by slgu1 on 12/5/15.
@@ -24,6 +25,7 @@ public class DebugOp  extends FileOp{
         try {
             io.mark(0);
             Config.dedup.setIo(io);
+            Config.dedup.setBoundaryQueue(new LinkedBlockingQueue<Pair>());
             resHash = Config.dedup.hash();
             fileSize = resHash.get(resHash.size() - 1).idx * 1.0 / 1024 / 1024;
             io.close();

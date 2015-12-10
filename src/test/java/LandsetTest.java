@@ -4,6 +4,7 @@ import dedup.FileHashing;
 import dedup.VaribleLengthHashing;
 import operation.DebugOp;
 import operation.FileOp;
+import operation.HdfsStreamOp;
 
 import javax.management.MBeanServerConnection;
 import java.io.*;
@@ -16,7 +17,7 @@ public class LandsetTest {
     private static String imgDir = "/Users/slgu1/ads_data/Landsat";
 
     public static void storeDir(File dir) throws IOException{
-        FileOp op = new DebugOp();
+        FileOp op = new HdfsStreamOp();
         for (File f: dir.listFiles()) {
             if (f.getName().startsWith("."))
                 continue;;
@@ -52,7 +53,7 @@ public class LandsetTest {
     public static void VariableTest() throws IOException {
         System.out.println("begin variable size test");
         try {
-            long msk = 0xFFFFFL;
+            long msk = 0x3FFFFFL;
             System.out.println(msk);
             Config.dedup = new VaribleLengthHashing(msk);
         } catch (Exception e) {

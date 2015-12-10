@@ -210,7 +210,6 @@ public class HdfsOp extends FileOp{
         }
         String [] blocks = new String[]{};
         blocks = ((ArrayList <String>)doc.get("blocks")).toArray(blocks);
-        System.out.println(blocks.length);
         byte [] buffer = new byte[1024 * 16];
         int cnt = 0;
         for (String block: blocks) {

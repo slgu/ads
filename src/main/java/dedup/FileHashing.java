@@ -35,7 +35,10 @@ public class FileHashing extends DedupInterface{
             md.update(buffer,0,bytesRead);
         }
         byte [] thedigest = md.digest();
-        re.add(new Pair(length, Util.eraseGarble(thedigest)));
+        Pair pair = new Pair(length, Util.eraseGarble(thedigest));
+        re.add(pair);
+        boundaryQueue.add(pair);
+        boundaryQueue.add(new Pair(-1, ""));
         return re;
     }
 }

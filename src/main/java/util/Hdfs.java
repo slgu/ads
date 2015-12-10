@@ -71,6 +71,7 @@ public class Hdfs {
     }
     public boolean create(String filename, InputStream io) {
         try {
+            System.out.println(filename);
             FSDataOutputStream os = hdfs.create(new Path(Config.DedupDir + "/" + filename));
             while (true) {
                 int byteRead = io.read(buffer);

@@ -46,15 +46,20 @@ public class FixedLengthHashing extends DedupInterface {
             else {
                md.update(buffer,0,(int)(blockSize - length));
                index++;
-               re.add(new Pair(index*blockSize, Util.eraseGarble(md.digest())));
+               Pair pair = new Pair(index * blockSize, Util.eraseGarble(md.digest()));
+               re.add(pair);
+               boundaryQueue.add(pair);
                if(length + bytesRead - blockSize != 0)
                    md.update(buffer,(int)(blockSize - length), bytesRead);
                length = length + bytesRead - blockSize;
            }
         }
         if(length != 0) {
-            re.add(new Pair(length + index * blockSize, Util.eraseGarble(md.digest())));
+            Pair pair = new Pair(length + index * blockSize, Util.eraseGarble(md.digest()));
+            re.add(pair);
+            boundaryQueue.add(pair);
         }
+        boundaryQueue.add(new Pair(-1,""));
         return re;
     }
 }

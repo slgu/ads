@@ -1,6 +1,7 @@
 import com.sun.management.OperatingSystemMXBean;
 import config.Config;
 import dedup.FileHashing;
+import dedup.FixedLengthHashing;
 import dedup.VaribleLengthHashing;
 import operation.DebugOp;
 import operation.FileOp;
@@ -13,10 +14,11 @@ import java.lang.management.ManagementFactory;
 /**
  * Created by slgu1 on 11/30/15.
  */
-public class BackupTest {
-    private static String imgDir = "/Users/slgu1/ads_data/BackupVm";
+public class ImgTest {
+    private static String BackupImgDir = "/Users/slgu1/ads_data/BackupVm";
+    private static String ISOImgDir = "/Users/slgu1/ads_data/ISO";
     public static void put() throws IOException {
-        File dir = new File(imgDir);
+        File dir = new File(ISOImgDir);
         for (File f: dir.listFiles()) {
             if (f.isFile()) {
                 if (f.getName().startsWith("."))
@@ -37,15 +39,26 @@ public class BackupTest {
         }
         System.out.println("total usage" + Config.op.size());
     }
-    public static void fileLevelTest() throws IOException{
+    public static void FileLevelTest() throws IOException{
         System.out.println("begin file level test");
         Config.dedup = new FileHashing();
         put();
     }
+    public static void BlockLevelTest() throws IOException{
+        System.out.println("begin block level test");
+        try {
+            Config.dedup = new FixedLengthHashing(4 * 1024 * 1024);
+            put();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+    }
     public static void VariableTest() throws IOException {
         System.out.println("begin variable size test");
         try {
-            long msk = 0x3FFFFFL;
+            long msk = 0x7FFFFFL;
             Config.dedup = new VaribleLengthHashing(msk);
         } catch (Exception e) {
             e.printStackTrace();
@@ -60,7 +73,9 @@ public class BackupTest {
         long nanoBefore = System.nanoTime();
         long cpuBefore = osBean.getProcessCpuTime();
         //run test here
-        VariableTest();
+        //VariableTest();
+        //FileLevelTest();
+        BlockLevelTest();
         long cpuAfter = osBean.getProcessCpuTime();
         long nanoAfter = System.nanoTime();
         long percent;

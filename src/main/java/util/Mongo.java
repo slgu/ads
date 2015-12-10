@@ -34,7 +34,7 @@ public class Mongo {
     }
     public static void sizeStatistic() {
         FindIterable <Document> res = mongodb.getCollection(Config.BlockConnection).find(
-                new Document("referCnt", new Document("$gt", 0))
+                new Document("referCnt", new Document("$gt", 1))
         );
         double sum = 0;
         for (Document doc: res) {
@@ -44,11 +44,6 @@ public class Mongo {
     }
 
     public static void main(String [] args) {
-        Document doc = Mongo.mongodb.getCollection(Config.BlockConnection).findOneAndUpdate(
-                new Document("hash", "142857"),
-                new Document("$inc", new Document("referCnt", 1))
-        );
-        System.out.println(doc);
-        //sizeStatistic();
+        sizeStatistic();
     }
 }

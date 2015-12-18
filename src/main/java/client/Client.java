@@ -18,14 +18,12 @@ public class Client {
      * dedup -get file.txt
      */
     public static void main(String [] args) {
-        /*
         if (args.length != 2) {
             System.out.println("wrong input parameter");
             return;
         }
-        */
-        String option = "-put";
-        String filename = "/Users/slgu1/Desktop/w4118.ova";
+        String option = args[0];
+        String filename = args[1];
         FileOp op = new HdfsOp();
         if (option.equals("-put")) {
             InputStream io = null;

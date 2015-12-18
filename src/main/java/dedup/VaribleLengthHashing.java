@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+/*refer http://sourceforge.net/projects/rabinhash/ */
+
 public class VaribleLengthHashing extends DedupInterface implements Serializable{
 
     private static final long serialVersionUID = -7974881488259731932L;
@@ -84,24 +86,12 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         }
     }
 
-    /**
-     *  Return the Rabin hash value of an array of bytes.
-     *
-     *@param  A  the array of bytes
-     *@return    the hash value
-     */
+
     public long hash(byte[] A) {
         return hash(A, 0, A.length, 0);
     }
 
-    /**
-     *  Description of the Method
-     *
-     *@param  A       Description of the Parameter
-     *@param  offset  Description of the Parameter
-     *@param  length  Description of the Parameter
-     *@return         Description of the Return Value
-     */
+
     private long hash(byte[] A, int offset, int length, long ws) {
         long w = ws;
         int start = length % 8;
@@ -130,12 +120,6 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         return w;
     }
 
-    /**
-     *  Return the Rabin hash value of an array of chars.
-     *
-     *@param  A  the array of chars
-     *@return    the hash value
-     */
     public long hash(char[] A) {
         long w = 0;
         int start = A.length % 4;
@@ -160,23 +144,6 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         return w;
     }
 
-    /**
-     *  Computes the Rabin hash value of the contents of a file.
-     *
-     *@param  f                       the file to be hashed
-     *@return                         the hash value of the file
-     *@throws  FileNotFoundException  if the file cannot be found
-     *@throws  IOException            if an error occurs while reading the file
-     */
-
-
-    /**
-     *  Computes the Rabin hash value of the data from an <code>InputStream</code>.
-     *
-     *@return               the hash value of the data from the InputStream
-     *@throws  IOException  if an error occurs while reading from the
-     *      InputStream
-     */
     public List<Pair> hash() throws IOException {
         long hashValue = 0;
         int bytesRead = 0;
@@ -285,14 +252,6 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         return re;
     }
 
-    /**
-     *  Returns the Rabin hash value of an array of integers. This method is the
-     *  most efficient of all the hash methods, so it should be used when
-     *  possible.
-     *
-     *@param  A  array of integers
-     *@return    the hash value
-     */
     public long hash(int[] A) {
         long w = 0;
         int start = 0;
@@ -316,14 +275,7 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         return w;
     }
 
-    /**
-     *  Returns the Rabin hash value of an array of longs. This method is the
-     *  most efficient of all the hash methods, so it should be used when
-     *  possible.
-     *
-     *@param  A  array of integers
-     *@return    the hash value
-     */
+
     public long hash(long[] A) {
         long w = 0;
         for (int s = 0; s < A.length; s++) {
@@ -341,24 +293,12 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         return w;
     }
 
-    /**
-     *  Description of the Method
-     *
-     *@param  obj              Description of the Parameter
-     *@return                  Description of the Return Value
-     *@exception  IOException  Description of the Exception
-     */
+
     public long hash(Object obj) throws IOException {
         return hash((Serializable) obj);
     }
 
-    /**
-     *  Returns the Rabin hash value of a serializable object.
-     *
-     *@param  obj           the object to be hashed
-     *@return               the hash value
-     *@throws  IOException  if serialization fails
-     */
+
     public long hash(Serializable obj) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = null;
@@ -374,22 +314,10 @@ public class VaribleLengthHashing extends DedupInterface implements Serializable
         }
     }
 
-    /**
-     *  Computes the Rabin hash value of a String.
-     *
-     *@param  s  the string to be hashed
-     *@return    the hash value
-     */
+
     public long hash(String s) {
         return hash(s.toCharArray());
     }
 
-    /**
-     *  Computes the Rabin hash value of the contents of a file, specified by
-     *  URL.
-     *
-     *@param  url           the URL of the file to be hashed
-     *@return               the hash value of the file
-     *@throws  IOException  if an error occurs while reading from the URL
-     */
+
 }
